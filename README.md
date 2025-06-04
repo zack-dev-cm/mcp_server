@@ -45,3 +45,14 @@ print(requests.get("http://localhost:8000/v1/resources").json())
 ```
 
 The server output shows a public URL for the Gradio interface so you can try the demo visually.
+
+## LLM/VLM Plugin Example
+
+Plugins can extend the server with new tools. The included `openai_chat` and `openai_vision` plugins show how to call OpenAI models. Set `OPENAI_API_KEY` in your environment and start the server:
+
+```bash
+pip install openai
+python server.py
+```
+
+Invoke the `openai.chat` or `openai.vision` tools via the API or Gradio UI.
