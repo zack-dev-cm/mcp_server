@@ -22,7 +22,7 @@ Author: @kaisenaiko • Updated: 2025‑06‑04
 # !pip install fastapi uvicorn[standard] gradio==4.* nest_asyncio pydantic python-dotenv --quiet
 
 import json, uuid, logging, asyncio, datetime as dt, random, itertools, time, threading
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Tuple, Union
 
 # Core deps
 from fastapi import FastAPI, HTTPException, Request
@@ -214,14 +214,14 @@ Use the tabs to explore resources, invoke tools, or chat via the echo tool.""")
             dd = gr.Dropdown(choices=[(t.name,tid) for tid,t in tools.items()], label="Tool")
             param = gr.JSON(label="Params (JSON)")
             out = gr.JSON()
-            async def run_tool(tid,p):
+            async def run_tool(tid: str, p: Dict[str, Any]) -> Dict[str, Any]:
                 return await tools[tid].handler(p)
             gr.Button("Run").click(run_tool,[dd,param],out)
 
         with gr.TabItem("Chat"):
             chat = gr.Chatbot()
             msg = gr.Textbox()
-            async def echo_chat(user, hist):
+            async def echo_chat(user: str, hist: Optional[List[List[str]]]) -> Tuple[List[List[str]], str]:
                 hist = hist or []
                 res = await echo_tool({"text":user})
                 return hist+[[user,json.dumps(res,indent=2)]], ""

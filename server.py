@@ -8,7 +8,7 @@ import random
 import socket
 import threading
 import uuid
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -295,7 +295,7 @@ Use the tabs to explore resources, invoke tools, or chat via the echo tool."""
             param = gr.JSON(label="Params (JSON)")
             out = gr.JSON()
 
-            async def run_tool(tid, p):
+            async def run_tool(tid: str, p: Dict[str, Any]) -> Dict[str, Any]:
                 return await tools[tid].handler(p)
 
             gr.Button("Run").click(run_tool, [dd, param], out)
@@ -304,7 +304,7 @@ Use the tabs to explore resources, invoke tools, or chat via the echo tool."""
             chat = gr.Chatbot()
             msg = gr.Textbox()
 
-            async def echo_chat(user, hist):
+            async def echo_chat(user: str, hist: Optional[List[List[str]]]) -> Tuple[List[List[str]], str]:
                 hist = hist or []
                 res = await echo_tool({"text": user})
                 return hist + [[user, json.dumps(res, indent=2)]], ""
