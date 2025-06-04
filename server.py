@@ -8,6 +8,8 @@ import random
 import socket
 import threading
 import uuid
+import importlib
+import pkgutil
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from fastapi import FastAPI, HTTPException, Request
@@ -121,6 +123,16 @@ def find_free_port(start: int = 7860, end: int = 7960) -> int:
     raise OSError(f"No free port in range {start}-{end}")
 
 
+def load_plugins(path: str = "plugins") -> None:
+    """Dynamically import modules from *path* to register tools."""
+    full = os.path.join(os.path.dirname(__file__), path)
+    if not os.path.isdir(full):
+        return
+    for _, mod, _ in pkgutil.iter_modules([full]):
+        importlib.import_module(f"{path}.{mod}")
+        logger.info("Loaded plugin %s", mod)
+
+
 # ---------------------------------------------------------------------------
 # Mock tools
 # ---------------------------------------------------------------------------
@@ -185,6 +197,9 @@ prompts["hello-world"] = Prompt(
     description="Greets the user",
     template="You are a helpful AI. Greet the user.",
 )
+
+# Load optional tool plugins
+load_plugins()
 
 
 # ---------------------------------------------------------------------------
