@@ -25,15 +25,13 @@ The API is served on port `8000` by default and the Gradio UI will try to use `G
 
 Open [`MCP_colab.ipynb`](./MCP_colab.ipynb) in Colab or click the badge above and run the cells.
 
-Install dependencies (only needed once):
+If starting from a blank notebook, run these commands to set up and launch the
+server:
 
 ```python
+!git clone https://github.com/zack-dev-cm/mcp_server.git
+%cd /content/mcp_server
 !pip install fastapi uvicorn[standard] gradio==4.* pydantic python-dotenv
-```
-
-Start the servers and keep the notebook cell alive:
-
-```python
 from colab_adapter import launch_in_colab
 launch_in_colab()
 ```
