@@ -129,8 +129,13 @@ def load_plugins(path: str = "plugins") -> None:
     if not os.path.isdir(full):
         return
     for _, mod, _ in pkgutil.iter_modules([full]):
-        importlib.import_module(f"{path}.{mod}")
-        logger.info("Loaded plugin %s", mod)
+        try:
+            importlib.import_module(f"{path}.{mod}")
+            logger.info("Loaded plugin %s", mod)
+        except ModuleNotFoundError as e:
+            logger.warning("Skipping plugin %s: %s", mod, e)
+        except Exception as e:
+            logger.exception("Failed to load plugin %s: %s", mod, e)
 
 
 # ---------------------------------------------------------------------------

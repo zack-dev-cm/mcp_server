@@ -48,14 +48,16 @@ The server output shows a public URL for the Gradio interface so you can try the
 
 ## LLM/VLM Plugin Example
 
-Plugins can extend the server with new tools. The included `openai_chat` and `openai_vision` plugins show how to call OpenAI models. Set `OPENAI_API_KEY` in your environment and start the server:
+Plugins can extend the server with new tools. The included `openai_chat` and `openai_vision` plugins show how to call OpenAI models. Set `OPENAI_API_KEY` in your environment and start the server.
+
+If running locally, install the `openai` package first:
 
 ```bash
 pip install openai
 python server.py
 ```
 
-Invoke the `openai.chat` or `openai.vision` tools via the API or Gradio UI.
+The Dockerfile installs `openai` automatically. Invoke the `openai.chat` or `openai.vision` tools via the API or Gradio UI.
 
 ## Deploying to Cloud Run
 
