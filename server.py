@@ -327,27 +327,11 @@ Use the tabs to explore resources, invoke tools, or chat via the echo tool."""
             gr.Button("Send").click(echo_chat, [msg, chat], [chat, msg])
 
 
-def run_servers(api_port: int = 8000, ui_port: Optional[int] = None) -> None:
-    """Run FastAPI and Gradio servers concurrently."""
-    if ui_port is None:
-        env_port = int(os.getenv("GRADIO_SERVER_PORT", "7860"))
-        try:
-            ui_port = find_free_port(env_port, env_port)
-        except OSError:
-            ui_port = find_free_port()
-
-    def _run_api():
-        uvicorn.run(app, host="0.0.0.0", port=api_port, log_level="info")
-
-    def _run_ui():
-        demo.launch(server_name="0.0.0.0", server_port=ui_port, show_error=True, share=True)
-
-    t1 = threading.Thread(target=_run_api, daemon=True)
-    t2 = threading.Thread(target=_run_ui, daemon=True)
-    t1.start()
-    t2.start()
-    t1.join()
-    t2.join()
+def run_servers(api_port: int = 8000) -> None:
+    """Run FastAPI with the Gradio UI mounted on the same port."""
+    port = int(os.getenv("PORT", str(api_port)))
+    gr.mount_gradio_app(app, demo, path="/")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
 
 
 if __name__ == "__main__":
