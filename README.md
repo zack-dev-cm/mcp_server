@@ -56,3 +56,22 @@ python server.py
 ```
 
 Invoke the `openai.chat` or `openai.vision` tools via the API or Gradio UI.
+
+## Deploying to Cloud Run
+
+You can deploy the server on [Google Cloud Run](https://cloud.google.com/run)
+using the provided `Dockerfile`:
+
+```bash
+# build and push the container
+gcloud builds submit --tag gcr.io/PROJECT_ID/mcp-server
+
+# deploy the image to Cloud Run
+gcloud run deploy mcp-server \
+  --image gcr.io/PROJECT_ID/mcp-server \
+  --region REGION \
+  --allow-unauthenticated
+```
+
+Cloud Run sets the `PORT` environment variable automatically, which the server
+uses to expose both the API and Gradio UI on the same endpoint.
