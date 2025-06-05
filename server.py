@@ -223,7 +223,7 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def universal_error(request: Request, exc: Exception):
     logger.exception("Unhandled exception: %s", exc)
-    return JSONResponse(500, {"error": str(exc)})
+    return JSONResponse(status_code=500, content={"error": str(exc)})
 
 
 @app.get("/health")
