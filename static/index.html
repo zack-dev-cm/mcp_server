@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MCP Demo UI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>MCP Demo UI</h1>
+<nav>
+  <button id="tab-resources">Resources</button>
+  <button id="tab-tools">Tools</button>
+  <button id="tab-chat">Chat</button>
+</nav>
+<section id="resources" class="tab">
+  <button id="refresh-resources">Refresh</button>
+  <table id="resources-table">
+    <thead><tr><th>URI</th><th>Description</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+<section id="tools" class="tab hidden">
+  <label>Tool:
+    <select id="tool-select"></select>
+  </label>
+  <label>Params:
+    <textarea id="tool-params">{}</textarea>
+  </label>
+  <button id="run-tool">Run</button>
+  <pre id="tool-output"></pre>
+</section>
+<section id="chat" class="tab hidden">
+  <div id="chat-window"></div>
+  <input type="text" id="chat-input" placeholder="Type a message">
+  <button id="send-chat">Send</button>
+</section>
+<script src="script.js"></script>
+</body>
+</html>

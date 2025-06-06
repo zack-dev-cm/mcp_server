@@ -2,22 +2,20 @@
 
 import os
 import datetime as dt
-import json
 import logging
 import random
 import socket
-import threading
 import uuid
 import importlib
 import pkgutil
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import uvicorn
-import gradio as gr
 
 PROTOCOL_VERSION = "2025-03-26"
 SERVER_ID = f"mcp-demo-{uuid.uuid4()}"
@@ -30,7 +28,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger("mcp")
 
-iso_now = lambda: dt.datetime.utcnow().isoformat() + "Z"
+
+def iso_now() -> str:
+    """Return current UTC time in ISO format."""
+    return dt.datetime.utcnow().isoformat() + "Z"
 
 
 # ---------------------------------------------------------------------------
@@ -292,50 +293,17 @@ async def invoke_tool(tool_id: str, req: InvokeReq):
 
 
 # ---------------------------------------------------------------------------
-# Gradio UI
+# Static UI
 # ---------------------------------------------------------------------------
-with gr.Blocks(title="MCP Demo UI") as demo:
-    gr.Markdown(
-        """## MCP Demo – Gradio UI
-Use the tabs to explore resources, invoke tools, or chat via the echo tool."""
-    )
 
-    with gr.Tabs():
-        with gr.TabItem("Resources"):
-            df = gr.Dataframe(
-                headers=["URI", "Description"], datatype=["str", "str"], interactive=False
-            )
-            gr.Button("Refresh").click(
-                lambda: [[r.uri, r.description] for r in resources.values()], None, df
-            )
-            df.value = [[r.uri, r.description] for r in resources.values()]
-
-        with gr.TabItem("Tools"):
-            dd = gr.Dropdown(choices=[(t.name, tid) for tid, t in tools.items()], label="Tool")
-            param = gr.JSON(label="Params (JSON)")
-            out = gr.JSON()
-
-            async def run_tool(tid: str, p: Dict[str, Any]) -> Dict[str, Any]:
-                return await tools[tid].handler(p)
-
-            gr.Button("Run").click(run_tool, [dd, param], out)
-
-        with gr.TabItem("Chat"):
-            chat = gr.Chatbot()
-            msg = gr.Textbox()
-
-            async def echo_chat(user: str, hist: Optional[List[List[str]]]) -> Tuple[List[List[str]], str]:
-                hist = hist or []
-                res = await echo_tool({"text": user})
-                return hist + [[user, json.dumps(res, indent=2)]], ""
-
-            gr.Button("Send").click(echo_chat, [msg, chat], [chat, msg])
+# Serve the web UI located in the "static" folder. The directory contains
+# an index.html that interacts with the API via JavaScript.
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 
-def run_servers(api_port: int = 8000) -> None:
-    """Run FastAPI with the Gradio UI mounted on the same port."""
+def run_servers(api_port: int = 8000, ui_port: int | None = None) -> None:
+    """Run FastAPI application."""
     port = int(os.getenv("PORT", str(api_port)))
-    gr.mount_gradio_app(app, demo, path="/")
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
 
 
