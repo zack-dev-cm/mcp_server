@@ -61,6 +61,16 @@ python server.py
 
 The Dockerfile installs `openai` automatically. Invoke the `openai.chat` or `openai.vision` tools via the API or Gradio UI.
 
+## Streamable HTTP Endpoint
+
+ChatGPT connectors can talk directly to the server using the unified `/mcp` route.
+Send JSON‑RPC requests with `POST /mcp` to receive standard JSON responses. When
+your client supports Server‑Sent Events you may instead `GET /mcp` and keep the
+connection open to stream updates.
+
+Configure your ChatGPT connector to point at your server’s base URL and use the
+`/mcp` endpoint for both non‑streaming and streaming interactions.
+
 ## Deploying to Cloud Run
 
 You can deploy the server on [Google Cloud Run](https://cloud.google.com/run)
