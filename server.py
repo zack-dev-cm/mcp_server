@@ -9,13 +9,19 @@ import uuid
 import importlib
 import pkgutil
 from typing import Any, Dict, List, Optional, Union
+import json
+import asyncio
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import uvicorn
+try:
+    from sse_starlette.sse import EventSourceResponse  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    EventSourceResponse = None
 
 PROTOCOL_VERSION = "2025-03-26"
 SERVER_ID = f"mcp-demo-{uuid.uuid4()}"
@@ -290,6 +296,60 @@ async def invoke_tool(tool_id: str, req: InvokeReq):
         raise HTTPException(404, "Tool not found")
     result = await tools[tool_id].handler(req.params)
     return JSONRPCResponse(id=req.id, result=result)
+
+
+@app.post("/mcp")
+async def mcp_endpoint(request: Request):
+    """Unified MCP endpoint supporting optional SSE."""
+    accepts_sse = "text/event-stream" in request.headers.get("accept", "")
+    payload = await request.json()
+    is_batch = isinstance(payload, list)
+    calls = payload if is_batch else [payload]
+    results = []
+
+    for call in calls:
+        method = call.get("method")
+        if method == "initialize":
+            resp = await initialize(InitReq(**call))
+        elif method == "tools/list":
+            resp = await list_tools()
+        elif method == "resources/list":
+            resp = await list_resources()
+        elif method and method.startswith("tool/") and method.endswith("/invoke"):
+            tool_id = method.split("/")[1]
+            resp = await invoke_tool(tool_id, InvokeReq(**call))
+        else:
+            resp = {"error": f"Unknown method {method}"}
+        if isinstance(resp, JSONRPCResponse):
+            results.append(resp.dict())
+        else:
+            results.append(resp)
+
+    if accepts_sse:
+        async def event_stream():
+            for item in results:
+                yield f"data: {json.dumps(item)}\n\n"
+                await asyncio.sleep(0)
+        if EventSourceResponse:
+            return EventSourceResponse(event_stream())
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return results if is_batch else results[0]
+
+
+@app.get("/mcp")
+async def mcp_keepalive():
+    """Optional keep-alive SSE stream."""
+    if EventSourceResponse:
+        responder = EventSourceResponse
+    else:
+        responder = lambda gen: StreamingResponse(gen, media_type="text/event-stream")
+
+    async def ping():
+        while True:
+            yield f"data: {json.dumps({'time': iso_now()})}\n\n"
+            await asyncio.sleep(15)
+
+    return responder(ping())
 
 
 # ---------------------------------------------------------------------------
