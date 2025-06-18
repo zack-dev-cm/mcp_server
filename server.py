@@ -20,6 +20,10 @@ from pydantic import BaseModel, Field
 import uvicorn
 from secure_store import delete_user_data, load_user_data, save_user_data
 try:
+    import openai
+except Exception:  # pragma: no cover - optional dependency
+    openai = None
+try:
     from sse_starlette.sse import EventSourceResponse  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     EventSourceResponse = None
@@ -156,6 +160,40 @@ def load_plugins(path: str = "plugins") -> None:
             logger.exception("Failed to load plugin %s: %s", mod, e)
 
 
+async def analyze_chat_for_actions(chat_history: str) -> Dict[str, Any]:
+    """Parse chat history and suggest next actions.
+
+    Uses OpenAI if configured, otherwise falls back to naive heuristics.
+    """
+    if openai and os.getenv("OPENAI_API_KEY"):
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        system_prompt = (
+            "Analyze the following chat history and return a JSON object describing "
+            "any actions the system should take. Include fields to gather from the "
+            "user and the next recommended step."
+        )
+        try:
+            resp = await openai.ChatCompletion.acreate(
+                model=os.getenv("ANALYSIS_MODEL", "gpt-3.5-turbo"),
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": chat_history},
+                ],
+                temperature=0,
+            )
+            return json.loads(resp.choices[0].message.content)
+        except Exception as e:  # pragma: no cover - network failures
+            logger.exception("LLM analysis failed: %s", e)
+
+    # Fallback heuristic
+    text = chat_history.lower()
+    if "weather" in text:
+        return {"actions": [{"tool": "weather.fake", "fields": ["location"]}]}
+    if any(k in text for k in ["calc", "calculate", "+", "-"]):
+        return {"actions": [{"tool": "calculator", "fields": ["expression"]}]}
+    return {"actions": []}
+
+
 # ---------------------------------------------------------------------------
 # Mock tools
 # ---------------------------------------------------------------------------
@@ -266,6 +304,16 @@ async def list_tools():
 @app.get("/v1/prompts")
 async def list_prompts():
     return [p.dict() for p in prompts.values()]
+
+
+class NavigateReq(BaseModel):
+    chat_history: str
+
+
+@app.post("/api/navigate")
+async def navigate(req: NavigateReq):
+    """Analyze chat history and return suggested actions."""
+    return await analyze_chat_for_actions(req.chat_history)
 
 
 class InitReq(BaseModel):
