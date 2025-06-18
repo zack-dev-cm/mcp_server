@@ -1,5 +1,5 @@
 FROM python:3.10-slim
 WORKDIR /app
 COPY . .
-RUN pip install --no-cache-dir fastapi uvicorn[standard] pydantic openai sse-starlette
+RUN pip install --no-cache-dir fastapi uvicorn[standard] pydantic openai sse-starlette cryptography
 CMD ["python", "server.py"]
