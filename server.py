@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import uvicorn
+from secure_store import delete_user_data, load_user_data, save_user_data
 try:
     from sse_starlette.sse import EventSourceResponse  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
@@ -103,6 +104,16 @@ sessions: Dict[str, Session] = {}
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
+
+def get_token(request: Request) -> str:
+    """Return bearer token from Authorization header if valid."""
+    auth = request.headers.get("authorization")
+    if not auth or not auth.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    token = auth.split(" ", 1)[1]
+    if token not in sessions:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return token
 
 def mcp_tool(name: str, description: str, inputs: List[ToolInput]):
     """Decorator to register a function as an MCP tool."""
@@ -298,6 +309,28 @@ async def invoke_tool(tool_id: str, req: InvokeReq):
     return JSONRPCResponse(id=req.id, result=result)
 
 
+@app.get("/api/user/data")
+async def get_user_data(request: Request):
+    token = get_token(request)
+    data = load_user_data(token)
+    return data or {}
+
+
+@app.post("/api/user/data")
+async def post_user_data(request: Request):
+    token = get_token(request)
+    payload = await request.json()
+    save_user_data(token, payload)
+    return {"status": "saved"}
+
+
+@app.delete("/api/user/data")
+async def delete_user_data_endpoint(request: Request):
+    token = get_token(request)
+    delete_user_data(token)
+    return {"status": "deleted"}
+
+
 @app.post("/mcp")
 async def mcp_endpoint(request: Request):
     """Unified MCP endpoint supporting optional SSE."""
@@ -342,7 +375,10 @@ async def mcp_keepalive():
     if EventSourceResponse:
         responder = EventSourceResponse
     else:
-        responder = lambda gen: StreamingResponse(gen, media_type="text/event-stream")
+        def _sse(gen):
+            return StreamingResponse(gen, media_type="text/event-stream")
+
+        responder = _sse
 
     async def ping():
         while True:

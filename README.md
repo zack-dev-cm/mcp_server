@@ -71,6 +71,32 @@ connection open to stream updates.
 Configure your ChatGPT connector to point at your server’s base URL and use the
 `/mcp` endpoint for both non‑streaming and streaming interactions.
 
+## User Data API
+
+Authenticated sessions can store and manage user‑specific JSON payloads.
+First request a session ID then pass it as a bearer token:
+
+```bash
+# create a session and grab the token
+TOKEN=$(curl -s -X POST http://localhost:8000/v1/initialize \
+  -H 'Content-Type: application/json' \
+  -d '{"id":1,"jsonrpc":"2.0","method":"initialize","params":{}}' \
+  | jq -r '.result.sessionId')
+
+# store data
+curl -X POST http://localhost:8000/api/user/data \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"foo":"bar"}'
+
+# fetch it back
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/user/data
+
+# remove it
+curl -X DELETE -H "Authorization: Bearer $TOKEN" \
+  http://localhost:8000/api/user/data
+```
+
 ## Deploying to Cloud Run
 
 You can deploy the server on [Google Cloud Run](https://cloud.google.com/run)
