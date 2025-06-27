@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MCP Usage Examples</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>MCP Usage Examples</h1>
+  <p>Click a button to run an example using the API.</p>
+  <button id="btn-echo">Echo Hello</button>
+  <button id="btn-calc">Calculate 2 + 2</button>
+  <button id="btn-weather">Weather for London</button>
+  <pre id="output"></pre>
+  <script>
+    async function loadTools() {
+      const resp = await fetch('/v1/tool');
+      const data = await resp.json();
+      const map = {};
+      data.forEach(item => {
+        const id = Object.keys(item)[0];
+        map[item[id].name] = id;
+      });
+      return map;
+    }
+    async function runExample(map, name, params) {
+      if (!map[name]) {
+        document.getElementById('output').textContent = 'Tool ' + name + ' not available';
+        return;
+      }
+      const resp = await fetch('/v1/tool/' + map[name] + '/invoke', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: 1, method: 'invoke', params})
+      });
+      const data = await resp.json();
+      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+    }
+    document.addEventListener('DOMContentLoaded', async () => {
+      const tools = await loadTools();
+      document.getElementById('btn-echo').onclick = () => runExample(tools, 'echo', {text: 'Hello'});
+      document.getElementById('btn-calc').onclick = () => runExample(tools, 'calculator', {expression: '2 + 2'});
+      document.getElementById('btn-weather').onclick = () => runExample(tools, 'weather.fake', {location: 'London'});
+    });
+  </script>
+</body>
+</html>
