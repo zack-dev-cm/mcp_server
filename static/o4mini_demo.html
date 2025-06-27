@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>o4-mini Demo</title>
+</head>
+<body>
+  <h2>Ask the o4-mini model</h2>
+  <input type="text" id="prompt" placeholder="Enter prompt" />
+  <button id="send">Send</button>
+  <pre id="reply"></pre>
+
+  <script>
+  document.getElementById('send').addEventListener('click', async () => {
+      const prompt = document.getElementById('prompt').value;
+      const resp = await fetch('/v1/tool/' + window.o4miniId + '/invoke', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: 1, method: 'invoke', params: {prompt}})
+      });
+      const data = await resp.json();
+      document.getElementById('reply').textContent = data.result.reply;
+  });
+
+  fetch('/v1/tool').then(r => r.json()).then(list => {
+      for (const item of list) {
+          const id = Object.keys(item)[0];
+          if (item[id].name === 'o4mini.chat') {
+              window.o4miniId = id;
+              break;
+          }
+      }
+  });
+  </script>
+</body>
+</html>
