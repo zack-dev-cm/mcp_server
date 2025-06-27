@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Usage Examples</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Usage Examples</h1>
+<button id="btn-resources">List Resources</button>
+<button id="btn-echo">Echo Hello</button>
+<button id="btn-weather">Random Weather</button>
+<pre id="output"></pre>
+<script>
+async function getToolId(name) {
+  const resp = await fetch('/v1/tool');
+  const data = await resp.json();
+  for (const item of data) {
+    const id = Object.keys(item)[0];
+    if (item[id].name === name) {
+      return id;
+    }
+  }
+  return null;
+}
+
+document.getElementById('btn-resources').addEventListener('click', async () => {
+  const resp = await fetch('/v1/resources');
+  document.getElementById('output').textContent = JSON.stringify(await resp.json(), null, 2);
+});
+
+document.getElementById('btn-echo').addEventListener('click', async () => {
+  const id = await getToolId('echo');
+  if (!id) return;
+  const resp = await fetch(`/v1/tool/${id}/invoke`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: 1, method: 'invoke', params: { text: 'Hello' } })
+  });
+  document.getElementById('output').textContent = JSON.stringify(await resp.json(), null, 2);
+});
+
+document.getElementById('btn-weather').addEventListener('click', async () => {
+  const id = await getToolId('weather.fake');
+  if (!id) return;
+  const resp = await fetch(`/v1/tool/${id}/invoke`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: 1, method: 'invoke', params: { location: 'Boston' } })
+  });
+  document.getElementById('output').textContent = JSON.stringify(await resp.json(), null, 2);
+});
+</script>
+</body>
+</html>
