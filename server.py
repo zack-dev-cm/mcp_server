@@ -11,6 +11,7 @@ import pkgutil
 from typing import Any, Dict, List, Optional, Union
 import json
 import asyncio
+import sqlite3
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +24,14 @@ try:
     import openai
 except Exception:  # pragma: no cover - optional dependency
     openai = None
+try:  # optional html sanitizing
+    import bleach  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    bleach = None
+try:  # optional html->md
+    import html2text  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    html2text = None
 try:
     from sse_starlette.sse import EventSourceResponse  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
@@ -158,6 +167,28 @@ def load_plugins(path: str = "plugins") -> None:
             logger.warning("Skipping plugin %s: %s", mod, e)
         except Exception as e:
             logger.exception("Failed to load plugin %s: %s", mod, e)
+
+
+def _sanitize_html(html: str) -> str:
+    """Return sanitized HTML using bleach if available."""
+    if bleach:
+        try:
+            return bleach.clean(html)
+        except Exception:
+            pass
+    return html
+
+
+def _html_to_markdown(html: str) -> str:
+    """Convert HTML to markdown if html2text is available."""
+    if html2text:
+        try:
+            conv = html2text.HTML2Text()
+            conv.ignore_links = False
+            return conv.handle(html)
+        except Exception:
+            pass
+    return html
 
 
 async def analyze_chat_for_actions(chat_history: str) -> Dict[str, Any]:
@@ -377,6 +408,32 @@ async def delete_user_data_endpoint(request: Request):
     token = get_token(request)
     delete_user_data(token)
     return {"status": "deleted"}
+
+
+class EmbedReq(BaseModel):
+    html: str
+    plain: str
+    sources: Optional[Any] = None
+
+
+@app.post("/api/embed")
+async def embed_snippet(req: EmbedReq):
+    """Save a snippet and return sanitized markup and metadata."""
+    sanitized = _sanitize_html(req.html)
+    markdown = _html_to_markdown(req.html)
+    snip_id = uuid.uuid4().hex[:8]
+    url = f"/s/{snip_id}"
+    db = sqlite3.connect(os.getenv("SNIPPET_DB", "snippets.sqlite3"))
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS snippets (id TEXT PRIMARY KEY, html TEXT, plain TEXT, markdown TEXT, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+    )
+    db.execute(
+        "INSERT INTO snippets (id, html, plain, markdown) VALUES (?, ?, ?, ?)",
+        (snip_id, sanitized, req.plain, markdown),
+    )
+    db.commit()
+    db.close()
+    return {"id": snip_id, "url": url, "sanitizedHtml": sanitized, "md": markdown}
 
 
 @app.post("/mcp")
