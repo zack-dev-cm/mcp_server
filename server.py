@@ -18,6 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+
+from settings import settings
 import uvicorn
 from secure_store import delete_user_data, load_user_data, save_user_data
 try:
@@ -305,6 +307,17 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
+
+SECRET_TOKEN = settings.ELEVENLABS_MCP_SECRET
+
+
+@app.middleware("http")
+async def auth_header(request: Request, call_next):
+    if request.url.path.startswith("/mcp"):
+        token = request.headers.get("authorization", "").removeprefix("Bearer ")
+        if token != SECRET_TOKEN:
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    return await call_next(request)
 
 
 @app.exception_handler(Exception)
