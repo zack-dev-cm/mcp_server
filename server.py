@@ -15,7 +15,7 @@ import sqlite3
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -504,6 +504,14 @@ async def mcp_keepalive():
             await asyncio.sleep(15)
 
     return responder(ping())
+
+
+@app.get("/sse")
+async def sse_bridge(request: Request):
+    """Bridge SSE requests from /sse to /mcp."""
+    # ElevenLabs sends SSE traffic to /sse, but our keepalive lives at /mcp.
+    # A simple redirect is sufficient as their client follows 302 responses.
+    return RedirectResponse(url="/mcp")
 
 
 # ---------------------------------------------------------------------------
