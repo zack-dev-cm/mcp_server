@@ -133,7 +133,7 @@ Expected model workflow:
 1. Install dependencies and start the server:
 
 ```bash
-pip install fastapi uvicorn httpx
+pip install fastapi uvicorn httpx openai pydantic-settings
 python server.py
 ```
 

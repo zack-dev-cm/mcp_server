@@ -39,7 +39,8 @@ server:
 ```python
 !git clone https://github.com/zack-dev-cm/mcp_server.git
 %cd /content/mcp_server
-!pip install fastapi uvicorn[standard] gradio==4.* pydantic python-dotenv
+!pip install fastapi uvicorn[standard] gradio==4.* pydantic python-dotenv \
+            httpx openai pydantic-settings
 from colab_adapter import launch_in_colab
 launch_in_colab()
 ```
@@ -58,10 +59,10 @@ The server output shows a public URL for the Gradio interface so you can try the
 
 Plugins can extend the server with new tools. The included `openai_chat` and `openai_vision` plugins show how to call OpenAI models. Set `OPENAI_API_KEY` in your environment and start the server.
 
-If running locally, install the `openai` package first:
+If running locally, install the required packages first:
 
 ```bash
-pip install openai
+pip install openai httpx pydantic-settings
 python server.py
 ```
 
@@ -121,3 +122,14 @@ gcloud run deploy mcp-server \
 
 Cloud Run sets the `PORT` environment variable automatically, which the server
 uses to expose both the API and Gradio UI on the same endpoint.
+
+## Running Tests
+
+The test suite expects both `ELEVENLABS_MCP_SECRET` and `OPENAI_API_KEY` to be
+set. Copy `dev.env` and source it before executing `pytest`:
+
+```bash
+cp dev.env .env
+set -a && source .env && set +a
+pytest
+```
