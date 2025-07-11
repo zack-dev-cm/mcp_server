@@ -14,6 +14,12 @@ Run the server locally:
 python server.py
 ```
 
+Create a `dev.env` file and add your OpenAI API key:
+
+```bash
+OPENAI_API_KEY=your-openai-key
+```
+
 Inside Google Colab or other notebooks use the helper:
 
 ```python
