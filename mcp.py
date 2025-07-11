@@ -19,7 +19,7 @@ Author: @kaisenaiko • Updated: 2025‑06‑04
 # ──────────────────────────────────────────────────────────────────────────
 
 # To run the first time in Colab, uncomment the next line:
-# !pip install fastapi uvicorn[standard] gradio==4.* nest_asyncio pydantic python-dotenv --quiet
+# !pip install fastapi uvicorn[standard] gradio==4.* nest_asyncio httpx openai pydantic pydantic-settings python-dotenv --quiet
 
 import json, uuid, logging, asyncio, datetime as dt, random, itertools, time, threading
 from typing import Dict, List, Any, Optional, Tuple, Union
