@@ -171,6 +171,23 @@ def load_plugins(path: str = "plugins") -> None:
             logger.exception("Failed to load plugin %s: %s", mod, e)
 
 
+def tool_to_schema(t: Tool) -> dict:
+    """Return a JSON schema representation for a tool."""
+    return {
+        "name": t.name,
+        "title": t.name,
+        "description": t.description,
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                i.name: {"type": "string", "description": i.description}
+                for i in t.inputs
+            },
+            "required": [i.name for i in t.inputs if i.required],
+        },
+    }
+
+
 def _sanitize_html(html: str) -> str:
     """Return sanitized HTML using bleach if available."""
     if bleach:
@@ -345,6 +362,13 @@ async def list_tools():
     return [{tid: t.dict(exclude={"handler"})} for tid, t in tools.items()]
 
 
+@app.get("/v1/tools")
+async def list_tools_rpc():
+    """List tools in JSON-RPC compliant format."""
+    payload = [tool_to_schema(t) for t in tools.values()]
+    return {"tools": payload, "nextCursor": None}
+
+
 @app.get("/v1/prompts")
 async def list_prompts():
     return [p.dict() for p in prompts.values()]
@@ -463,7 +487,11 @@ async def mcp_endpoint(request: Request):
         if method == "initialize":
             resp = await initialize(InitReq(**call))
         elif method == "tools/list":
-            resp = await list_tools()
+            tools_payload = [tool_to_schema(t) for t in tools.values()]
+            resp = JSONRPCResponse(
+                id=call["id"],
+                result={"tools": tools_payload, "nextCursor": None},
+            )
         elif method == "resources/list":
             resp = await list_resources()
         elif method and method.startswith("tool/") and method.endswith("/invoke"):
