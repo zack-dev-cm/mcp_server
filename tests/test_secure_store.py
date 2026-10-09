@@ -107,6 +107,32 @@ def test_delete_preserves_other_identity():
     assert store.load_user_data("bob") is False
 
 
+def test_new_database_and_directory_are_private(tmp_path, monkeypatch):
+    path = tmp_path / "new-store" / "data.db"
+    monkeypatch.setenv("USERDATA_DB", str(path))
+    previous = os.umask(0o022)
+    try:
+        store.save_user_data("authored-session", {"private": True})
+    finally:
+        os.umask(previous)
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert path.parent.stat().st_mode & 0o777 == 0o700
+
+
+def test_existing_parent_permissions_are_preserved(tmp_path, monkeypatch):
+    parent = tmp_path / "shared-parent"
+    parent.mkdir(mode=0o755)
+    path = parent / "data.db"
+    monkeypatch.setenv("USERDATA_DB", str(path))
+    previous = os.umask(0o022)
+    try:
+        store.save_user_data("authored-session", False)
+    finally:
+        os.umask(previous)
+    assert parent.stat().st_mode & 0o777 == 0o755
+    assert path.stat().st_mode & 0o777 == 0o600
+
+
 @pytest.mark.parametrize("value", [object(), float("nan"), float("inf")])
 def test_invalid_value_does_not_create_database(isolated_storage, value):
     with pytest.raises(store.StorageValueError):

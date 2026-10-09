@@ -28,7 +28,12 @@ operations fail before creating or opening the database.
 The default path is `user_store/data.db` beside `secure_store.py`. Explicitly
 set `USERDATA_DB` to the existing path when upgrading. The container needs a
 persistent volume if data must survive replacement. Fernet tokens reveal their
-creation timestamp, and SQLite still contains plaintext row identities.
+creation timestamp, and SQLite still contains plaintext row identities. In
+this demo those identities are session bearer tokens. New database files use
+mode `0600`, and newly created immediate parent directories use `0700`.
+Existing files and shared parent permissions are preserved. Check and protect
+an existing database, its directory and any journal or WAL files before using
+it; encrypted values do not protect a readable session token.
 
 ## Migrate an existing store
 

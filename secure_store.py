@@ -50,7 +50,14 @@ def _cipher() -> Fernet:
 
 def _get_db_conn() -> sqlite3.Connection:
     path = _get_db_path()
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if path and path != ":memory:":
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            pass
+        else:
+            os.close(fd)
     conn = sqlite3.connect(path)
     try:
         conn.execute(
