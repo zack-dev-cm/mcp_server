@@ -1,6 +1,6 @@
 # MCP Server
 
-Available at https://mcp-server-1095464065298.us-east1.run.app 
+Recorded demo URL: https://mcp-server-1095464065298.us-east1.run.app. Its current deployment and configuration have not been verified by this change.
 
 A minimal reference implementation of the Model Context Protocol (MCP) with a few mock tools and an optional Gradio playground.
 
@@ -8,9 +8,11 @@ A minimal reference implementation of the Model Context Protocol (MCP) with a fe
 
 ## Usage
 
-Run the server locally:
+Install the local demo and test dependencies, then run the server:
 
 ```bash
+python -m pip install -r requirements-test.txt
+export ELEVENLABS_MCP_SECRET="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
 python server.py
 ```
 
@@ -27,6 +29,10 @@ from colab_adapter import launch_in_colab
 launch_in_colab()
 ```
 
+`ELEVENLABS_MCP_SECRET` is required by the server. Store a stable value privately
+for later starts and configure clients using `/mcp` with that bearer secret.
+The example above creates a temporary local value without printing it.
+
 The API is served on port `8000` by default and the Gradio UI will try to use `GRADIO_SERVER_PORT` or the first free port starting at 7860.
 
 ## Run in Google Colab
@@ -40,7 +46,7 @@ server:
 !git clone https://github.com/zack-dev-cm/mcp_server.git
 %cd /content/mcp_server
 !pip install fastapi uvicorn[standard] gradio==4.* pydantic python-dotenv \
-            httpx openai pydantic-settings
+            httpx openai pydantic-settings cryptography==50.0.2
 from colab_adapter import launch_in_colab
 launch_in_colab()
 ```
@@ -62,7 +68,7 @@ Plugins can extend the server with new tools. The included `openai_chat` and `op
 If running locally, install the required packages first:
 
 ```bash
-pip install openai httpx pydantic-settings
+pip install openai httpx pydantic-settings cryptography==50.0.2
 python server.py
 ```
 
@@ -81,7 +87,16 @@ Configure your ChatGPT connector to point at your server’s base URL and use th
 ## User Data API
 
 Authenticated sessions can store and manage user‑specific JSON payloads.
-First request a session ID then pass it as a bearer token:
+Before using these endpoints, set `MASTER_KEY` to a generated Fernet key in the
+server environment. There is no default key. Keep this key private and stable
+across restarts. `USERDATA_DB` selects the database path and defaults to
+`user_store/data.db` beside `secure_store.py`.
+
+Existing databases need the explicit migration described in
+[User-data storage and migration](docs/user-data-storage.md). Do not deploy
+this storage change over legacy rows without completing that procedure.
+
+After configuring storage, request a session ID and pass it as a bearer token:
 
 ```bash
 # create a session and grab the token
@@ -104,10 +119,21 @@ curl -X DELETE -H "Authorization: Bearer $TOKEN" \
   http://localhost:8000/api/user/data
 ```
 
+Stored JSON values round trip exactly, including `null`, `false`, `0`, empty
+strings and empty arrays. A missing row returns `{}`. Invalid storage
+configuration returns HTTP 503, legacy rows return 409 until migration, and
+unverifiable rows return 500 without exposing their contents. Nonfinite JSON
+values are rejected with 422. The current demo identifies data by its
+in-memory session token; durable accounts and sessions are separate work.
+
 ## Deploying to Cloud Run
 
 You can deploy the server on [Google Cloud Run](https://cloud.google.com/run)
 using the provided `Dockerfile`:
+
+Configure `MASTER_KEY` through the deployment's secret mechanism before using
+the user-data API, and retain a persistent `USERDATA_DB` volume when persistence
+is needed. These commands alone do not configure or migrate protected storage.
 
 ```bash
 # build and push the container
@@ -125,11 +151,17 @@ uses to expose both the API and Gradio UI on the same endpoint.
 
 ## Running Tests
 
-The test suite expects both `ELEVENLABS_MCP_SECRET` and `OPENAI_API_KEY` to be
-set. Copy `dev.env` and source it before executing `pytest`:
+Run the repository tests in an isolated environment:
 
 ```bash
-cp dev.env .env
-set -a && source .env && set +a
-pytest
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-test.txt
+python -m pytest -q
 ```
+
+Fixtures use temporary SQLite databases, generated test keys and a synthetic
+MCP secret. Outbound network connections are blocked. Do not source real
+provider keys for this suite. These tests cover local storage and API behavior;
+they do not verify OpenAI plugins, Gradio, a deployed endpoint or MCP client
+interoperability. Ubuntu CI runs the same suite on Python 3.10 and 3.12.
