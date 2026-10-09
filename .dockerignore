@@ -13,3 +13,7 @@ user_store
 *.sqlite3
 *.sqlite3-*
 *.log
+
+node_modules/
+test-results/
+playwright-report/

@@ -35,6 +35,17 @@ The example above creates a temporary local value without printing it.
 
 The API is served on port `8000` by default and the Gradio UI will try to use `GRADIO_SERVER_PORT` or the first free port starting at 7860.
 
+Open `/` for resources, tools and echo chat, or `/examples.html` for the three
+demo actions. Weather values are randomly generated. Failed requests are shown
+on the page; controls become available again for retry. Chat and resource text
+are rendered literally, including strings that look like HTML.
+
+The calculator accepts numbers, parentheses and `+`, `-`, `*`, `/`, `//`, `%`
+and `**`. Expressions are limited to 256 characters, 128 syntax nodes and 16
+nested operations. Numbers and intermediate results must be finite and no
+larger than `1e12` in absolute value; exponents range from `-12` to `12`.
+Python attributes, calls, names and comprehensions are rejected with HTTP 400.
+
 ## Run in Google Colab
 
 Open [`MCP_colab.ipynb`](./MCP_colab.ipynb) in Colab or click the badge above and run the cells.
@@ -165,3 +176,21 @@ MCP secret. Outbound network connections are blocked. Do not source real
 provider keys for this suite. These tests cover local storage and API behavior;
 they do not verify OpenAI plugins, Gradio, a deployed endpoint or MCP client
 interoperability. Ubuntu CI runs the same suite on Python 3.10 and 3.12.
+
+## Browser checks
+
+After installing the local test dependencies above, install the browser test
+runner and Chromium:
+
+```bash
+npm ci
+npx playwright install chromium --only-shell
+npm run test:browser
+```
+
+The runner starts a loopback FastAPI server with the provider key disabled.
+It checks real resource, arithmetic, echo and demo weather flows, then injects
+HTTP, network and protocol failures to check error display and retry. It also
+checks literal rendering of HTML-like input and duplicate-click handling.
+The checks do not exercise Gradio, external providers, `/mcp` interoperability
+or a deployed service. `DEMO_TEST_PORT` can select another free local port.
