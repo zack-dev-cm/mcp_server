@@ -21,7 +21,15 @@ from pydantic import BaseModel, Field
 
 from settings import settings
 import uvicorn
-from secure_store import delete_user_data, load_user_data, save_user_data
+from secure_store import (
+    LegacyDataError,
+    StorageConfigurationError,
+    StorageIntegrityError,
+    StorageValueError,
+    delete_user_data,
+    load_user_data,
+    save_user_data,
+)
 try:
     import openai
 except Exception:  # pragma: no cover - optional dependency
@@ -343,6 +351,26 @@ async def universal_error(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"error": str(exc)})
 
 
+@app.exception_handler(StorageConfigurationError)
+async def storage_configuration_error(request: Request, exc: StorageConfigurationError):
+    return JSONResponse(status_code=503, content={"detail": "User-data storage is not configured"})
+
+
+@app.exception_handler(LegacyDataError)
+async def legacy_data_error(request: Request, exc: LegacyDataError):
+    return JSONResponse(status_code=409, content={"detail": "Stored user data require migration"})
+
+
+@app.exception_handler(StorageIntegrityError)
+async def storage_integrity_error(request: Request, exc: StorageIntegrityError):
+    return JSONResponse(status_code=500, content={"detail": "Stored user data could not be verified"})
+
+
+@app.exception_handler(StorageValueError)
+async def storage_value_error(request: Request, exc: StorageValueError):
+    return JSONResponse(status_code=422, content={"detail": "Data must be a finite JSON value"})
+
+
 @app.get("/health")
 async def health():
     return {
@@ -425,11 +453,14 @@ async def invoke_tool(tool_id: str, req: InvokeReq):
     return JSONRPCResponse(id=req.id, result=result)
 
 
+_USER_DATA_MISSING = object()
+
+
 @app.get("/api/user/data")
 async def get_user_data(request: Request):
     token = get_token(request)
-    data = load_user_data(token)
-    return data or {}
+    data = load_user_data(token, default=_USER_DATA_MISSING)
+    return {} if data is _USER_DATA_MISSING else data
 
 
 @app.post("/api/user/data")
