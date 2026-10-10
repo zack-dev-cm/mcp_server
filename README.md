@@ -1,7 +1,5 @@
 # MCP Server
 
-Recorded demo URL: https://mcp-server-1095464065298.us-east1.run.app. Its current deployment and configuration have not been verified by this change.
-
 A minimal reference implementation of the Model Context Protocol (MCP) with a few mock tools and an optional Gradio playground.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/zack-dev-cm/mcp_server/blob/main/MCP_colab.ipynb)
