@@ -101,6 +101,49 @@ This migration is not a key rotation facility. Replacing `MASTER_KEY` alone
 makes current rows unreadable. Durable account identity, provider integrations
 and production deployment acceptance remain separate from this storage repair.
 
+## Release qualification
+
+The demo's HTTP identity is a session bearer token held in the server process's
+`sessions` dictionary. Keeping the same database and `MASTER_KEY` preserves
+encrypted rows, but does not preserve that dictionary. Restarting the process
+invalidates its existing bearer tokens; another worker rejects them too. A new
+`/v1/initialize` response creates a different identity and cannot retrieve the
+old identity's row. Stopping the server for migration therefore also requires
+a decision about existing users' access. A successful migration does not
+establish end-user recovery.
+
+For a session-local demo, verify the new session's store, retrieve and delete
+flow and state its lifetime explicitly. If existing users must regain their
+stored data after restart, qualify an identity and session recovery design
+before shipping. That design is outside these storage and demo drafts.
+
+Before replacing an existing service, record its exact revision and image,
+actual database location and existing rows, previous and new key references,
+filesystem permissions, storage durability and SQLite locking support. Confirm
+the session lifetime and worker topology against the intended use. Rehearse
+the migration on a protected copy, compare known values with a trusted source,
+and restore its backup using the previous code and key. Then run the actual
+end-user acceptance for that deployment. The container recipe does not
+establish these facts. [Cloud Run's container contract](https://docs.cloud.google.com/run/docs/container-contract#file_system_access)
+states that its default writable filesystem is in memory and its contents do
+not persist when an instance stops.
+
+On October 10, 2026, isolated process checks used the actual previous storage
+code from main `13c63d0` to create six synthetic JSON rows in a WAL-backed
+database. The migration CLI preserved the dry run, produced a complete `0600`
+backup, and made the values readable by the new code in a fresh process. The
+restored backup was readable by the previous code. Killing the migration
+process after its first uncommitted update recovered every original row and
+retained the complete backup. Two actual local HTTP server processes confirmed
+same-process storage access and 401 responses for an existing token in another
+worker or after restart. Direct storage reads confirmed that its encrypted
+row remained present.
+
+These results qualify the synthetic migration and rollback procedure and
+demonstrate the session limitation. They do not qualify a deployed database,
+container, secret configuration or durable HTTP user flow. Those release gates
+remain open, so the storage and demo PRs remain drafts.
+
 ## Evidence
 
 The repository tests use synthetic values and temporary databases. They cover

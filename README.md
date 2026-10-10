@@ -135,14 +135,24 @@ unverifiable rows return 500 without exposing their contents. Nonfinite JSON
 values are rejected with 422. The current demo identifies data by its
 in-memory session token; durable accounts and sessions are separate work.
 
+Sessions are valid only in the process that created them. After a restart,
+the same bearer token returns 401 even if the database and encryption key are
+retained. A new session cannot retrieve the previous session's row. Another
+worker also rejects that token. This API currently supports session-local demo
+use; it has not qualified recovery of existing users' data after migration.
+
 ## Deploying to Cloud Run
 
 You can deploy the server on [Google Cloud Run](https://cloud.google.com/run)
 using the provided `Dockerfile`:
 
-Configure `MASTER_KEY` through the deployment's secret mechanism before using
-the user-data API, and retain a persistent `USERDATA_DB` volume when persistence
-is needed. These commands alone do not configure or migrate protected storage.
+Configure `ELEVENLABS_MCP_SECRET` and `MASTER_KEY` through the deployment's
+secret mechanism. Cloud Run's default writable filesystem loses data when an
+instance stops. A selected storage backend must establish durability and
+supported SQLite locking, and the HTTP session behavior above must meet the
+intended use. These commands alone do not qualify protected storage or user
+access after restart. Follow the [release qualification](docs/user-data-storage.md#release-qualification)
+before replacing an existing service.
 
 ```bash
 # build and push the container
