@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>MCP Demo UI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,26 +16,31 @@
 <p><a href="examples.html">Usage Examples</a></p>
 <section id="resources" class="tab">
   <button id="refresh-resources">Refresh</button>
+  <p id="resource-status" role="status" aria-live="polite"></p>
   <table id="resources-table">
     <thead><tr><th>URI</th><th>Description</th></tr></thead>
     <tbody></tbody>
   </table>
 </section>
 <section id="tools" class="tab hidden">
+  <button id="refresh-tools">Refresh tools</button>
   <label>Tool:
     <select id="tool-select"></select>
   </label>
   <label>Params:
     <textarea id="tool-params">{}</textarea>
   </label>
-  <button id="run-tool">Run</button>
-  <pre id="tool-output"></pre>
+  <button id="run-tool" disabled>Run</button>
+  <pre id="tool-output" role="status" aria-live="polite"></pre>
 </section>
 <section id="chat" class="tab hidden">
-  <div id="chat-window"></div>
+  <div id="chat-window" role="log" aria-live="polite"></div>
+  <label for="chat-input">Message</label>
   <input type="text" id="chat-input" placeholder="Type a message">
-  <button id="send-chat">Send</button>
+  <button id="send-chat" disabled>Send</button>
+  <p id="chat-status" role="status" aria-live="polite"></p>
 </section>
+<script src="api.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

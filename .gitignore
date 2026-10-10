@@ -7,3 +7,7 @@ user_store/
 *.db
 *.db-wal
 *.db-shm
+
+node_modules/
+test-results/
+playwright-report/

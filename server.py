@@ -266,13 +266,15 @@ async def echo_tool(p):
 
 @mcp_tool(
     "calculator",
-    "Simple arithmetic eval",
+    "Simple arithmetic",
     [ToolInput(name="expression", type="string", description="e.g. '2 + 2'")],
 )
 async def calculator_tool(p):
+    from arithmetic import calculate
+
     try:
-        return {"result": eval(p["expression"], {"__builtins__": {}})}
-    except Exception as e:
+        return {"result": calculate(p.get("expression"))}
+    except ValueError as e:
         raise HTTPException(400, str(e))
 
 
