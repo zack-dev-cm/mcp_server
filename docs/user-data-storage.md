@@ -124,7 +124,7 @@ the session lifetime and worker topology against the intended use. Rehearse
 the migration on a protected copy, compare known values with a trusted source,
 and restore its backup using the previous code and key. Then run the actual
 end-user acceptance for that deployment. The container recipe does not
-establish these facts. [Cloud Run's container contract](https://docs.cloud.google.com/run/docs/container-contract#file_system_access)
+establish these facts. [Cloud Run's container contract](https://docs.cloud.google.com/run/docs/container-contract)
 states that its default writable filesystem is in memory and its contents do
 not persist when an instance stops.
 
@@ -134,7 +134,7 @@ database. The migration CLI preserved the dry run, produced a complete `0600`
 backup, and made the values readable by the new code in a fresh process. The
 restored backup was readable by the previous code. Killing the migration
 process after its first uncommitted update recovered every original row and
-retained the complete backup. Two actual local HTTP server processes confirmed
+retained the complete backup. Actual local HTTP server processes confirmed
 same-process storage access and 401 responses for an existing token in another
 worker or after restart. Direct storage reads confirmed that its encrypted
 row remained present.
